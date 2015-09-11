@@ -1,0 +1,298 @@
+<?php
+
+App::uses('AppController', 'Controller');
+App::uses('CakeEmail', 'Network/Email');
+
+/**
+ * Useres Controller
+ *
+ * @property User $User
+ */
+class UsersController extends AppController {
+
+	public $paginate = array(
+        'limit' => 100,
+		'maxLimit' => 100
+    );
+    /**
+     * index method
+     *
+     * @return void
+     */
+    public function index() {
+        //$this->User->recursive = 0;
+        //$this->set('users', $this->paginate());
+		$term = ( isset( $this->params['url']['term'] ) )? $this->params['url']['term']: $this->passedArgs['term'];
+		$this->User->recursive = 0; 
+
+		// Es posible sobreescribir los parámetros de paginación 
+		// antes de llamar al método $this->paginate(...)
+		$this->paginate = array('limit' => 30,
+								'order' => array('User.username' => 'asc')
+								);
+		$users = $this->paginate('User', array('User.username LIKE '=> $term . '%'));
+		$this->set(compact('users'));
+    }
+
+    public function sendEmail($to, $vars, $asunto, $template) {
+
+        //$email = new CakeEmail('smtp');
+        $email = new CakeEmail('smtp');
+        $email->to($to)
+                ->template($template, 'default')
+                ->viewVars($vars)
+                ->subject($asunto)
+                ->emailFormat('html')
+                ->send();
+    }
+
+    public function recuperarContrasena() {
+        if ($this->request->is('post')) {
+            $user = $this->User->findByUsername($this->request->data('User.username'));
+            if(!empty($user)){
+                $correo = $user['User']['correo'];
+                $nom = $user['Perfil']['nombre'] != null ? $user['Perfil']['nombre'] : $user['User']['username'];
+                $viewVars = array('nombre' => $nom, 'id_user' => base64_encode($user['User']['id']));
+                $this->sendEmail($correo, $viewVars, 'Confirmar recuperación de contraseña OIRS', 'contrasena');
+                $this->redirect(array('controller' => 'home', 'action' => 'index'));
+            }else{
+                $this->Session->setFlash('<h2 class="alert alert-error">El usuario no existe</h2>');
+            }
+        }
+    }
+
+    public function contrasena($id_user) {
+        $this->User->id = base64_decode($id_user);
+        if (!$this->User->exists()) {
+            throw new NotFoundException(__('Invalid user'));
+        }
+        if ($this->request->is('put')||$this->request->is('post')) {
+            $this->User->set('password', $this->request->data('User.password1'));
+            if ($this->User->save()) {
+                $correo = $this->User->field('correo');
+                $nom = $this->User->findByUsername($this->User->field('username'));
+                $nom = $nom['Perfil']['nombre'] ? $nom['Perfil']['nombre'] : $nom['User']['username'];
+                $viewVars = array('nombre' => $nom, 'password' => $this->request->data('User.password1'));
+                $this->sendEmail($correo, $viewVars, 'Nueva contraseña', 'nueva_contrasena');
+                $this->redirect(array('controller' => 'home', 'action' => 'index'));
+            }else{
+                $this->Session->setFlash('<h2 class="alert alert-error">No se ha podido reestablecer la contraseña</h2>');
+            }
+        }else{
+            $this->request->data['User']['id'] = base64_encode($this->User->id);
+        }
+    }
+
+    /**
+     * view method
+     *
+     * @throws NotFoundException
+     * @param string $id
+     * @return void
+     */
+    public function view($id = null) {
+        $this->User->id = $id;
+        if (!$this->User->exists()) {
+            throw new NotFoundException(__('Invalid user'));
+        }
+        $this->set('user', $this->User->read(null, $id));
+    }
+
+    /**
+     * add method
+     *
+     * @return void
+     */
+    public function add() {
+        if ($this->request->is('post')) {
+            $this->User->create();
+            if ($this->User->save($this->request->data)) {
+                $this->Session->setFlash(__('The user has been saved'));
+                $this->redirect(array('action' => 'index'));
+            } else {
+                $this->Session->setFlash(__('The user could not be saved. Please, try again.'));
+            }
+        }
+        $roles = $this->User->Rol->find('list');
+        $perfiles = $this->User->Perfil->find('list');
+        $unidades = $this->User->Unidad->find('list');
+        $this->set(compact('roles', 'perfiles', 'unidades'));
+    }
+	
+	public function buscadoruser(){
+	
+		if ($this->request->is('post')) { 
+		
+			$datos 		= $this->request->data;
+			$userbusc	= $datos['BuscarUsuario']['nom_usuario'];
+			
+			if($userbusc != ''){
+				
+				$this->User->recursive = 0;	
+				$users 	= $this->paginate('User', array('User.username LIKE' => $userbusc."%"));
+			
+				$this->set(compact('users'));
+			}else{
+				$this->redirect(array('action' => 'index'));
+			}
+				
+		}
+	}
+	
+	function search(){
+		$term = ( isset( $this->params['url']['term'] ) )? $this->params['url']['term']: $this->passedArgs['term'];
+		$this->User->recursive = 0;
+
+		// Es posible sobreescribir los parámetros de paginación 
+		// antes de llamar al método $this->paginate(...)
+		$this->paginate = array('limit' => 10,
+								'order' => array('User.username' => 'asc')
+								);
+		$users = $this->paginate('User', array('User.username LIKE '=> $term . '%'));
+		$this->set(compact('users'));
+		
+	}
+	
+    /**
+     * edit method
+     *
+     * @throws NotFoundException
+     * @param string $id
+     * @return void
+     */
+    public function edit($id = null) {
+        $this->User->id = $id;
+        if (!$this->User->exists()) {
+            throw new NotFoundException(__('Invalid user'));
+        }
+
+        if ($this->request->is('put')) {
+            $pass = $this->User->find('list', array('fields' => array('User.password'), 'conditions' => array('User.id' => $id)));
+            if (($this->Auth->password($this->request->data['User']['passwordOld']) === $pass[$id])|| $this->Auth->user('Rol.rol')=='oirs') {
+                if (trim($this->request->data['User']['password']) !== '') {
+                    if ((trim($this->request->data['User']['password']) != trim($this->request->data['User']['password2']))) {
+                        $this->Session->setFlash('<h2 class="alert alert-error">Las contraseñas no coinciden</h2>');
+                        $this->redirect($this->referer());
+                    }
+                } else {
+                    unset($this->request->data['User']['password']);
+                }
+
+                if ($this->User->save($this->request->data)) {
+                    $this->Session->setFlash('<h2 class="alert alert-success">Usuario modificado</h2>');
+                    $this->redirect($this->referer());
+                } else {
+                    $this->Session->setFlash(__('El usuario no se ha podido modificar. Please, try again.'));
+                }
+            } else {
+                $this->Session->setFlash('<h2 class="alert alert-error">Ingrese contraseña correcta</h2>');
+                $this->redirect($this->referer());
+            }
+        } else {
+            $this->request->data = $this->User->read(null, $id);
+            $this->request->data['User']['password'] = '';
+        }
+        $roles = $this->User->Rol->find('list');
+        //$perfiles = $this->User->Perfil->find('list',array('conditions'=>array('')));
+        $unidades = $this->User->Unidad->find('list');
+        $this->set(compact('roles', 'perfiles', 'unidades'));
+    }
+
+    /**
+     * delete method
+     *
+     * @throws MethodNotAllowedException
+     * @throws NotFoundException
+     * @param string $id
+     * @return void
+     */
+    public function delete($id = null) {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException();
+        }
+        $this->User->id = $id;
+        if (!$this->User->exists()) {
+            throw new NotFoundException(__('Invalid user'));
+        }
+        if ($this->User->delete()) {
+            $this->Session->setFlash(__('User deleted'));
+            $this->redirect(array('action' => 'index'));
+        }
+        $this->Session->setFlash(__('User was not deleted'));
+        $this->redirect(array('action' => 'index'));
+    }
+
+    public function login() {
+        if ($this->request->is('post')) {
+            if ($this->Auth->login()) {
+                $this->redirect($this->Auth->redirect());
+            } else {
+                $this->Session->setFlash('<h2 class="alert alert-error">Username o Password incorrecto</h2>', 'default', array(), 'login');
+                $this->redirect($this->Auth->logout());
+            }
+        }
+    }
+
+    public function beforeRender() {
+        parent::beforeRender();
+        if ($this->action === 'login') {
+            $this->viewPath = 'Home';
+            $this->view = 'index';
+            $this->layout = 'index';
+        } else {
+            $usuario = $this->Auth->user('Rol.rol');
+            if ($usuario == 'user') {
+                $this->layout = 'usuario';
+            } else if ($usuario == 'oirs') {
+                $this->layout = 'oirs';
+            } else if ($usuario == 'admin') {
+                $this->layout = 'admin';
+            } else if ($usuario == 'unidad') {
+                $this->layout = 'unidad';
+            } else {
+                $this->layout = 'index';
+            }
+        }
+    }
+
+    public function beforeFilter() {
+        parent::beforeFilter();
+        $this->Auth->allow('logout', 'login', 'recuperarContrasena', 'contrasena');
+    }
+
+    public function logout($opt = false) {
+        $encuesta = $this->encuestaActiva();
+        if (!$opt && ($encuesta != false))
+            $this->redirect(array('controller' => 'encuestasUsers', 'action' => 'add', $encuesta));
+        else
+            $this->redirect($this->Auth->logout());
+    }
+
+    public function encuestaActiva() {
+        $this->autoRender = false;
+        $id = $this->User->EncuestasUser->Encuesta->query('SELECT encuestas.id AS ID FROM encuestas WHERE encuestas.active = 1 LIMIT 1');
+        if ($id)
+            return $id[0]['encuestas']['ID'];
+        else
+            return false;
+    }
+
+    public function isAuthorized($user) {
+        if ($this->Session->read('Auth.User.Rol.rol') == 'user') {
+            if (in_array($this->action, array('edit'))) {
+                return true;
+            }
+        } else if ($this->Session->read('Auth.User.Rol.rol') == 'unidad') {
+            if (in_array($this->action, array('edit'))) {
+                return true;
+            }
+        } else if ($this->Session->read('Auth.User.Rol.rol') == 'admin') {
+            if (in_array($this->action, array('edit', 'index', 'add', 'view', 'delete'))) {
+                return true;
+            }
+        }
+        return parent::isAuthorized($user);
+    }
+
+}
+

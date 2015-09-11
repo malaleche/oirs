@@ -1,0 +1,217 @@
+<?php
+
+function avg($cant = 0, $total = 0) {
+    if ($total != 0) {
+        return number_format(($cant * 100) / $total, 2, '.', ',');
+    } else {
+        return 0;
+    }
+}
+?>
+<script>
+    $(document).ready(function() {
+<?php
+if (!empty($resultados)):
+    ?>
+                $('#collapseOne').collapse('hide');
+    <?php
+endif;
+?>
+        $("#DesempenoMunicipalDesde").datepicker({
+            showOtherMonths: true,
+            selectOtherMonths: true,
+            dateFormat: "yy-mm-dd",
+            onSelect: function( selectedDate ) {
+                $( "#DesempenoMunicipalHasta" ).datepicker( "option", "minDate", selectedDate );
+            }
+        });
+        $("#DesempenoMunicipalHasta").datepicker({
+            showOtherMonths: true,
+            selectOtherMonths: true,
+            dateFormat: "yy-mm-dd",
+            onSelect: function( selectedDate ) {
+                $( "#DesempenoMunicipalDesde" ).datepicker( "option", "maxDate", selectedDate );
+            }
+        });
+    });
+</script>
+<style>
+input[type="radio"], input[type="checkbox"] {
+width: auto;
+float: left;
+}    
+</style>
+<?php
+$this->Html->addCrumb('Control de Anotaciones', '/Oirs/controlAnotaciones');
+$this->Html->addCrumb('Desempeño Municipal', '#');
+?>
+
+<div id="menu" class="pull-left span3" style="margin-left: 0px;">
+    <ul class="nav nav-tabs nav-stacked">
+        <li><?php echo $this->Html->link('Desempeño Municipal', array('controller' => 'Oirs', 'action' => 'desempenoMunicipal')); ?></li>
+        <li><?php echo $this->Html->link('Control Anotaciones', array('controller' => 'Oirs', 'action' => 'controlAnotaciones')); ?></li>
+        <li><?php if($this->Session->read('Auth.User.Rol.rol')!='unidad')echo $this->Html->link('Ver Encuestas', array('controller'=>'encuestasUsers', 'action'=>'index')); ?></li>
+    </ul>
+</div>
+<div class="accordion span8" id="accordion2">
+    <div class="accordion-group">
+        <div class="accordion-heading alert-info">
+            <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" href="#collapseOne">
+                Formulario de Consulta
+            </a>
+        </div>
+        <div id="collapseOne" class="accordion-body collapse in">
+            <div class="accordion-inner">
+                <div id="anotacion buscar form">
+                    <h2>Desempeño Municipal</h2>
+                    <?php
+                    echo $this->Form->create('DesempenoMunicipal', array('url' => array('controller' => 'Oirs', 'action' => 'desempenoMunicipal')));
+                    echo '<h5>Seleccione la forma en la que se mostraran los resultados</h5>';
+                    echo $this->Form->radio('forma', array('C' => 'Cantidades', 'P' => 'Porcentajes'), array('legend' => false, 'value' => 'C'));
+                    echo '<h5>Seleccione el origen de los datos</h5>';
+                    echo $this->Form->radio('origen', array('Digital' => 'Digital', 'Telefonico' => 'Telefonico', 'Presencial' => 'Presencial', '' => 'Todos'), array('legend' => false, 'value' => 'Digital'));
+                    echo '<h5>Desde</h5>';
+                    echo $this->Form->input('desde', array('class' => 'hasDatePicker', 'label' => false));
+                    echo '<h5>Hasta</h5>';
+                    echo $this->Form->input('hasta', array('class' => 'hasDatePicker', 'label' => false));
+                    echo $this->Form->end(array('label' => 'Consultar', 'class' => 'btn btn-primary'));
+                    ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php
+if (!empty($resultados)):
+    ?>
+    <div id="resultados" style="clear: both;">
+        <?php echo $this->Form->postLink('Exportar a Excel',array('action'=>'reporteDesempeno'),array('class'=>'btn')); ?>
+        <br><br>
+        <table class="table table-bordered">
+            <thead>
+                <tr class="info">
+                    <th rowspan="2" style="text-align: center;">Unidad</th>
+                    <th rowspan="2" style="text-align: center;">Total</th>
+                    <th colspan="3" style="text-align: center;">Abiertas</th>
+                    <th colspan="5" style="text-align: center;">Con Respuestas</th>
+                    <th rowspan="2" style="text-align: center;">Rechazadas</th>
+                    <th rowspan="2" style="text-align: center;">Dias Prom. Atraso</th>
+                </tr>
+                <tr>
+                    <th class="alert-info" style="text-align: center;">Total</th>
+                    <th class="alert-success"style="text-align: center;">D/Plazo</th>
+                    <th class="alert-error"style="text-align: center;">F/Plazo</th>
+                    <th class="alert-info"style="text-align: center;">Total</th>
+                    <th class="alert-success"style="text-align: center;">D/Plazo</th>
+                    <th class="alert-error"style="text-align: center;">F/Plazo</th>
+                    <th class="alert-success"style="text-align: center;">Cerrada</th>
+                    <th class="alert"style="text-align: center;">Sol.Pend.</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                if (isset($resultados)):
+                    foreach ($resultados['U'] as $r):
+                        ?>
+                        <tr>
+                            <td><?php echo isset($r['unidad']) ? $r['unidad'] : '0'; ?></td>
+                            <td><?php echo isset($r['Total']) ? $r['Total'] : '0'; ?></td>
+                            <td><?php
+            if ($resultados['forma'] == 'P') {
+                echo avg(isset($r['Abiertas']) ? $r['Abiertas'] : '0', isset($r['Total']) ? $r['Total'] : '0') . '%';
+            } else {
+                echo isset($r['Abiertas']) ? $r['Abiertas'] : '0';
+            }
+                        ?></td>
+                            <td><?php
+                    if ($resultados['forma'] == 'P') {
+                        echo avg(isset($r['AbiDP']) ? $r['AbiDP'] : '0', isset($r['Total']) ? $r['Total'] : '0') . '%';
+                    } else {
+                        echo isset($r['AbiDP']) ? $r['AbiDP'] : '0';
+                    }
+                        ?></td>
+                            <td><?php
+                    if ($resultados['forma'] == 'P') {
+                        echo avg(isset($r['AbiFP']) ? $r['AbiFP'] : '0', isset($r['Total']) ? $r['Total'] : '0') . '%';
+                    } else {
+                        echo isset($r['AbiFP']) ? $r['AbiFP'] : '0';
+                    }
+                        ?></td>
+                            <td><?php
+                    if ($resultados['forma'] == 'P') {
+                        echo avg(isset($r['ConRes']) ? $r['ConRes'] : '0', isset($r['Total']) ? $r['Total'] : '0') . '%';
+                    } else {
+                        echo isset($r['ConRes']) ? $r['ConRes'] : '0';
+                    }
+                        ?></td>
+                            <td><?php
+                    if ($resultados['forma'] == 'P') {
+                        echo avg(isset($r['ConResDP']) ? $r['ConResDP'] : '0', isset($r['Total']) ? $r['Total'] : '0') . '%';
+                    } else {
+                        echo isset($r['ConResDP']) ? $r['ConResDP'] : '0';
+                    }
+                        ?></td>
+                            <td><?php
+                    if ($resultados['forma'] == 'P') {
+                        echo avg(isset($r['ConResFP']) ? $r['ConResFP'] : '0', isset($r['Total']) ? $r['Total'] : '0') . '%';
+                    } else {
+                        echo isset($r['ConResFP']) ? $r['ConResFP'] : '0';
+                    }
+                        ?></td>
+                            <td><?php
+                    if ($resultados['forma'] == 'P') {
+                        echo avg(isset($r['anotCerr']) ? $r['anotCerr'] : '0', isset($r['Total']) ? $r['Total'] : '0') . '%';
+                    } else {
+                        echo isset($r['anotCerr']) ? $r['anotCerr'] : '0';
+                    }
+                        ?></td>
+                            <td><?php
+                    if ($resultados['forma'] == 'P') {
+                        echo avg(isset($r['anotSolPen']) ? $r['anotSolPen'] : '0', isset($r['Total']) ? $r['Total'] : '0') . '%';
+                    } else {
+                        echo isset($r['anotSolPen']) ? $r['anotSolPen'] : '0';
+                    }
+                        ?></td>
+                            <td><?php
+                    if ($resultados['forma'] == 'P') {
+                        echo avg(isset($r['Rechazadas']) ? $r['Rechazadas'] : '0', isset($r['Total']) ? $r['Total'] : '0') . '%';
+                    } else {
+                        echo isset($r['Rechazadas']) ? $r['Rechazadas'] : '0';
+                    }
+                        ?></td>
+                            <td>
+                                <?php
+                                $_AbiFP = 0;
+                                $_ConResFP = 0;
+                                if (isset($r['AbiFP'])) {
+                                    $_AbiFP = $r['AbiFP'];
+                                }
+                                if (isset($r['ConResFP'])) {
+                                    $_ConResFP = $r['ConResFP'];
+                                }
+                                $AFP = $_AbiFP + $_ConResFP;
+                                $_sumAbi = 0;
+                                $_sumConRes = 0;
+                                if (isset($r['sumAbi'])) {
+                                    $_sumAbi = $r['sumAbi'];
+                                }
+                                if (isset($r['sumConRes'])) {
+                                    $_sumConRes = $r['sumConRes'];
+                                }
+                                $sumDiasFP = $_sumAbi + $_sumConRes;
+                                $avg = $AFP > 0 ? $sumDiasFP / $AFP : 0;
+                                echo number_format($avg, 2, ',', '.');
+                                ?>
+                            </td>
+                        </tr>
+                        <?php
+                    endforeach;
+                endif;
+                ?>
+            </tbody>
+        </table>
+    </div>
+    <?php
+endif;
+?>
+

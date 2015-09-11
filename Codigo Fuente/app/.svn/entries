@@ -1,0 +1,132 @@
+10
+
+dir
+131
+file:///var/svn/oirs/trunk/app
+file:///var/svn/oirs
+
+
+
+2012-11-29T17:58:26.021211Z
+131
+javier.jara
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+267f6bc7-fbbc-40cc-8f84-dd2c8e6660d9
+
+Locale
+dir
+
+Test
+dir
+
+Model
+dir
+
+tmp
+dir
+
+webroot
+dir
+
+Console
+dir
+
+Controller
+dir
+
+Config
+dir
+
+Lib
+dir
+
+View
+dir
+
+.htaccess
+file
+
+
+
+
+2012-09-10T18:14:25.234000Z
+a2a9efe935decfd5f498bf0d83075574
+2012-09-10T16:32:21.499791Z
+2
+caacuna
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+140
+
+Vendor
+dir
+
+index.php
+file
+
+
+
+
+2012-09-10T18:14:25.238000Z
+df8457c55ab1921476c240f693df6a16
+2012-09-10T16:32:21.499791Z
+2
+caacuna
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+642
+
+Plugin
+dir
+

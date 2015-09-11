@@ -1,0 +1,120 @@
+<script>
+
+    $(document).ready(function(){
+       
+        jQuery.validator.addMethod('formatRut', function(value, element){
+            return this.optional(element) || value.match('^[\\d]{7,8}-[\\d|k|K]{1}');
+        },'Formato Incorrecto');
+        jQuery.validator.addMethod('formatFono', function(value, element){
+            return this.optional(element) || value.match('^[\\d]{1,2}-[\\d]{7}$');
+        },'Formato Incorrecto');
+        jQuery.validator.addMethod('lettersAndSpaceOnly', function(value, element){
+            return this.optional(element) || value.match('^[a-zA-z ]*$');
+        },'Ingrese letras y espacios solamente');
+       
+        jQuery.validator.addMethod('validarRut', function(value, element){
+            var error = true;
+            var rutsplit = value.split('-');
+            var indice = rutsplit.pop();
+            indice = (indice == 'k' || indice == 'K')?10:parseInt(indice);
+            var num = rutsplit[0];
+            num = num.split('');
+            var acu = 0;
+            var aux;
+            var array = [7,6,5,4,3,2];
+            var i;
+            var largo = parseInt(num.length);
+            for(i = 0;i < largo;i++){
+                aux = parseInt(array.pop());
+                    acu += (parseInt(num.pop())*aux);
+                    array.unshift(aux);
+            }
+            if(indice != 11-(acu%11)){
+                error= false;
+            }  
+            return this.optional(element) || error;
+        },'El rut no es valido');
+
+        $("#UserRegistrarseForm").validate({
+            rules:{
+                'data[Perfil][rut]':{
+                    required:true,
+                    formatRut:true,
+                    validarRut:true
+                },
+                'data[Perfil][nombre]':{
+                    required:true,
+                    lettersAndSpaceOnly:true
+                },
+                'data[Perfil][telefono]':{
+                    required:true,
+                    formatFono:true
+                    
+                },
+                'data[Perfil][celular]':{
+                    required:true,
+                    formatFono:true
+                },
+                'data[Perfil][direccion]':'required',
+                'data[Perfil][sexo]':'required',
+                'data[User][correo]':{
+                    required:true,
+                    email:true
+                },
+                'data[User][password]':'required',
+                'data[User][password2]':{
+                    required:true,
+                    equalTo:'#UserPassword'
+                }
+            }
+        });
+    });
+    
+    function goBack(){
+        window.history.back();
+    }
+    
+</script>
+<style>
+
+    .error{
+        color: red;
+        display: block;
+        float: left;
+        margin-left: 5px;
+    }
+
+    .input{
+        clear: both;
+    }
+
+</style>
+<div id="registrarse form">
+    <h2>Registro de Usuario</h2>
+    <?php echo $this->Html->link('<< Volver', '#', array('onclick' => 'goBack();return false;')); ?>
+    <br><br>
+    <div id="error" style="display: none" class="alert alert-error">
+        <h5>Errores</h5>
+    </div>
+    <?php
+    echo $this->Form->create(null, array('url' => array('controller' => 'Home', 'action' => 'registrarse')));
+    echo $this->Form->input('Perfil.rut', array('style' => 'width:300px;', 'placeholder' => 'Ej: 12345678-k'));
+    echo $this->Form->input('Perfil.nombre', array('label' => 'Nombre Completo', 'style' => 'width:300px;'));
+    //echo $this->Form->input('Perfil.apellido', array('style' => 'width:300px;'));
+    echo $this->Form->input('Perfil.telefono', array('style' => 'width:300px;', 'placeholder' => '(Cod. Ciudad)-(Numero)Ej:02-1234567'));
+    echo $this->Form->input('Perfil.celular', array('style' => 'width:300px;', 'placeholder' => 'Ej: 9-1234567'));
+    echo $this->Form->input('Perfil.direccion', array('style' => 'width:300px;', 'placeholder' => 'Calle, #Numero, Villa/Pobl., Ciudad'));
+    echo $this->Form->input('Perfil.comuna_id', array('selected' => '307'));
+    $options = array('Masculino' => 'Masculino', 'Femenino' => 'Femenino');
+    echo $this->Form->input('Perfil.sexo', array('options' => $options, 'empty' => 'Seleccionar'));
+    echo $this->Form->input('User.correo', array('style' => 'width:300px;', 'placeholder' => 'Ej:ejemplo_de_correo01@correo.com'));
+    echo $this->Form->input('User.password', array('label' => 'Contraseña', 'style' => 'width:300px;'));
+    echo $this->Form->input('password2', array('label' => 'Confirmar contraseña', 'type' => 'password', 'style' => 'width:300px;'));
+    if ($this->Session->read('Auth.User.Rol.rol') == 'oirs'):
+        echo $this->Form->input('User.username', array('style' => 'width:300px;'));
+        echo $this->Form->input('User.rol_id');
+        echo $this->Form->input('User.unidad_id', array('empty' => 'Seleccionar'));
+    endif;
+    echo $this->Form->end(array('label' => 'Agregar', 'class' => 'btn btn-primary', 'div' => array('class' => 'input')));
+    ?>
+</div>
